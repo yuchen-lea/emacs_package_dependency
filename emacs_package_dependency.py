@@ -4,7 +4,7 @@ import argparse
 
 from graphviz import Digraph
 from emacs_builtin_packages import EMACS_BUILTIN_PACKAGES
-from emacs_package_metadata import PACKAGE_DESCRIPTIONS
+from emacs_package_metadata import PACKAGE_DESCRIPTIONS, PACKAGE_CATEGORIES
 
 
 def find_emacs_package_dependencies(repo_path: str, only_main_file: bool = False) -> dict[str, set[str]]:
@@ -123,20 +123,41 @@ def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: st
     # Get built-in packages for the specified version
     builtin_packages = EMACS_BUILTIN_PACKAGES.get(emacs_version, set())
 
-    # Add all nodes with different colors for built-in packages
-    for package in dependencies.keys():
-        label = package
-        if show_descriptions and package in PACKAGE_DESCRIPTIONS:
-            label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-                <TR><TD ALIGN="left">{package}</TD></TR>
-                <TR><TD ALIGN="left"><FONT POINT-SIZE="9">{PACKAGE_DESCRIPTIONS[package]}</FONT></TD></TR>
-            </TABLE>>'''
+    # 创建子图用于分类
+    for category, packages in PACKAGE_CATEGORIES.items():
+        with dot.subgraph(name=f'cluster_{category}') as s:
+            s.attr(label=category)
+            s.attr(style='rounded')
+            s.attr(bgcolor='lightyellow')
+            # 为这个分类创建节点
+            for package in packages:
+                if package in dependencies:
+                    label = package
+                    if show_descriptions and package in PACKAGE_DESCRIPTIONS:
+                        label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+                            <TR><TD ALIGN="left">{package}</TD></TR>
+                            <TR><TD ALIGN="left"><FONT POINT-SIZE="9">{PACKAGE_DESCRIPTIONS[package]}</FONT></TD></TR>
+                        </TABLE>>'''
+                    
+                    if package in builtin_packages:
+                        s.node(package, label, fillcolor='lightblue')
+                    else:
+                        s.node(package, label, fillcolor='lightgrey')
 
-        if package in builtin_packages:
-            # Use a different color for built-in packages
-            dot.node(package, label, fillcolor='lightblue')
-        else:
-            dot.node(package, label, fillcolor='lightgrey')
+    # 为不在任何分类中的包创建节点
+    for package in dependencies.keys():
+        if not any(package in packages for packages in PACKAGE_CATEGORIES.values()):
+            label = package
+            if show_descriptions and package in PACKAGE_DESCRIPTIONS:
+                label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+                    <TR><TD ALIGN="left">{package}</TD></TR>
+                    <TR><TD ALIGN="left"><FONT POINT-SIZE="9">{PACKAGE_DESCRIPTIONS[package]}</FONT></TD></TR>
+                </TABLE>>'''
+            
+            if package in builtin_packages:
+                dot.node(package, label, fillcolor='lightblue')
+            else:
+                dot.node(package, label, fillcolor='lightgrey')
 
     # Add all edges (dependencies)
     for package, deps in dependencies.items():
