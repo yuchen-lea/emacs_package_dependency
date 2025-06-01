@@ -5,5 +5,4 @@
 !.gitignore
 !requirements.txt
 !*.py
-!README.md
-!README.org
+!*.org
