@@ -1,8 +1,8 @@
-# Emacs Package Dependency Analyzer
+* Emacs Package Dependency Analyzer
 
 A tool for analyzing Emacs package dependencies. It can generate both text reports and visual graphs of package dependencies.
 
-## Features
+** Features
 
 - Analyze Emacs package dependencies
 - Generate dependency reports in text or JSON format
@@ -11,71 +11,55 @@ A tool for analyzing Emacs package dependencies. It can generate both text repor
 - Display package descriptions
 - Distinguish between built-in and third-party packages
 
-## Installation
+** Installation
 
 1. Clone the repository:
-```bash
+
+#+begin_src sh
 git clone https://github.com/yourusername/emacs-package-dependency.git
 cd emacs-package-dependency
-```
+#+end_src
 
 2. Install dependencies:
-```bash
+
+#+begin_src sh
 pip install -r requirements.txt
-```
+#+end_src
 
-## Usage
+** Usage
 
-### Generate Text Format Dependency Report
+*** Generate Text Format Dependency Report
 
-```bash
+#+begin_src sh
 python emacs_package_dependency.py text /path/to/emacs/packages
-```
+#+end_src
 
-Optional arguments:
-- `--format`: Output format, supports 'text' or 'json' (default: 'text')
-- `--only-main-file`: Whether to analyze only the main file (default: True)
+Optional arguments: - =--format=: Output format, supports 'text' or 'json' (default: 'text') - =--only-main-file=: Whether to analyze only the main file (default: True)
 
-### Generate Dependency Graph
-
-```bash
+*** Generate Dependency Graph
+#+begin_src sh
 python emacs_package_dependency.py graph /path/to/emacs/packages
-```
+#+end_src
 
-Optional arguments:
-- `--output-file`: Output filename (default: 'emacs_dependencies')
-- `--emacs-version`: Emacs version (default: '30')
-- `--show-descriptions`: Whether to show package descriptions (default: False)
-- `--only-main-file`: Whether to analyze only the main file (default: True)
+Optional arguments: - =--output-file=: Output filename (default: 'emacs_dependencies') - =--emacs-version=: Emacs version (default: '30') - =--show-descriptions=: Whether to show package descriptions (default: False) - =--only-main-file=: Whether to analyze only the main file (default: True)
 
-## Output Examples
+** Output Examples
 
-### Text Format
-
-```
+*** Text Format
+#+begin_example
 📊 Detected Package Dependencies:
   - citar: {'emacs', 'parsebib', 'org', 'citeproc'}
   - vertico: {'emacs'}
   - org: {'emacs'}
-```
+#+end_example
 
-### Dependency Graph
+*** Dependency Graph
+The generated dependency graph shows: - Package dependency relationships - Package organization by categories - Distinction between built-in and third-party packages - Optional package descriptions
 
-The generated dependency graph shows:
-- Package dependency relationships
-- Package organization by categories
-- Distinction between built-in and third-party packages
-- Optional package descriptions
+** Configuration
+You can configure in =emacs_package_metadata.py=: - Package descriptions - Package category structure - Graph title format
 
-## Configuration
-
-You can configure in `emacs_package_metadata.py`:
-- Package descriptions
-- Package category structure
-- Graph title format
-
-## Notes
-
+** Notes
 - Graphviz is required for generating dependency graphs
 - Ensure you have sufficient permissions to read the package directory
-- Python 3.6 or higher is recommended 
+- Python 3.6 or higher is recommended
