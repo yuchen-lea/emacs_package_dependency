@@ -4,7 +4,7 @@ import argparse
 
 from graphviz import Digraph
 from emacs_builtin_packages import EMACS_BUILTIN_PACKAGES
-from emacs_package_metadata import PACKAGE_DESCRIPTIONS, PACKAGE_CATEGORIES
+from emacs_package_metadata import PACKAGE_DESCRIPTIONS, CATEGORY_HIERARCHY
 
 
 def find_emacs_package_dependencies(repo_path: str, only_main_file: bool = False) -> dict[str, set[str]]:
@@ -123,41 +123,70 @@ def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: st
     # Get built-in packages for the specified version
     builtin_packages = EMACS_BUILTIN_PACKAGES.get(emacs_version, set())
 
-    # 创建子图用于分类
-    for category, packages in PACKAGE_CATEGORIES.items():
-        with dot.subgraph(name=f'cluster_{category}') as s:
-            s.attr(label=category)
-            s.attr(style='rounded')
-            s.attr(bgcolor='lightyellow')
-            # 为这个分类创建节点
-            for package in packages:
-                if package in dependencies:
-                    label = package
-                    if show_descriptions and package in PACKAGE_DESCRIPTIONS:
-                        label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-                            <TR><TD ALIGN="left">{package}</TD></TR>
-                            <TR><TD ALIGN="left"><FONT POINT-SIZE="9">{PACKAGE_DESCRIPTIONS[package]}</FONT></TD></TR>
-                        </TABLE>>'''
-                    
-                    if package in builtin_packages:
-                        s.node(package, label, fillcolor='lightblue')
-                    else:
-                        s.node(package, label, fillcolor='lightgrey')
-
-    # 为不在任何分类中的包创建节点
-    for package in dependencies.keys():
-        if not any(package in packages for packages in PACKAGE_CATEGORIES.values()):
+    def create_node(package, parent_graph, label=None):
+        """Helper function to create a node"""
+        if label is None:
             label = package
-            if show_descriptions and package in PACKAGE_DESCRIPTIONS:
-                label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-                    <TR><TD ALIGN="left">{package}</TD></TR>
-                    <TR><TD ALIGN="left"><FONT POINT-SIZE="9">{PACKAGE_DESCRIPTIONS[package]}</FONT></TD></TR>
-                </TABLE>>'''
-            
-            if package in builtin_packages:
-                dot.node(package, label, fillcolor='lightblue')
+        if show_descriptions and package in PACKAGE_DESCRIPTIONS:
+            label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+                <TR><TD ALIGN="left">{package}</TD></TR>
+                <TR><TD ALIGN="left"><FONT POINT-SIZE="9">{PACKAGE_DESCRIPTIONS[package]}</FONT></TD></TR>
+            </TABLE>>'''
+        
+        if package in builtin_packages:
+            parent_graph.node(package, label, fillcolor='lightblue')
+        else:
+            parent_graph.node(package, label, fillcolor='lightgrey')
+
+    def create_category_subgraph(parent_graph, category_name, content):
+        """Helper function to create category subgraph, supporting arbitrary depth
+        
+        Args:
+            parent_graph: Parent graph object
+            category_name: Category name
+            content: Category content, can be a package list or subcategory dictionary
+        """
+        with parent_graph.subgraph(name=f'cluster_{category_name}') as s:
+            s.attr(label=category_name)
+            s.attr(style='rounded')
+
+            if isinstance(content, list):
+                # If it's a package list, create nodes directly
+                for package in content:
+                    if package in dependencies:
+                        create_node(package, s)
             else:
-                dot.node(package, label, fillcolor='lightgrey')
+                # If it's a dictionary, process subcategories first
+                for subcategory, subcontent in content.items():
+                    if subcategory != 'packages':  # Skip special 'packages' key
+                        create_category_subgraph(s, subcategory, subcontent)
+                
+                # Then process packages directly belonging to this category
+                if 'packages' in content:
+                    for package in content['packages']:
+                        if package in dependencies:
+                            create_node(package, s)
+            return s
+
+    # Create nested category structure
+    for category_name, content in CATEGORY_HIERARCHY.items():
+        create_category_subgraph(dot, category_name, content)
+
+    # Create nodes for packages not in any category
+    def get_all_packages(category_dict):
+        """Recursively get all packages"""
+        packages = set()
+        for content in category_dict.values():
+            if isinstance(content, list):
+                packages.update(content)
+            else:
+                packages.update(get_all_packages(content))
+        return packages
+
+    all_categorized_packages = get_all_packages(CATEGORY_HIERARCHY)
+    for package in dependencies.keys():
+        if package not in all_categorized_packages:
+            create_node(package, dot)
 
     # Add all edges (dependencies)
     for package, deps in dependencies.items():
