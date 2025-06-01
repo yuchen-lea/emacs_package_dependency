@@ -4,6 +4,7 @@ import argparse
 
 from graphviz import Digraph
 from emacs_builtin_packages import EMACS_BUILTIN_PACKAGES
+from emacs_package_metadata import PACKAGE_DESCRIPTIONS
 
 
 def find_emacs_package_dependencies(repo_path: str, only_main_file: bool = False) -> dict[str, set[str]]:
@@ -103,7 +104,7 @@ def find_emacs_package_dependencies(repo_path: str, only_main_file: bool = False
 
     return all_dependencies
 
-def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: str = "emacs_dependencies", emacs_version: str = "27.1") -> None:
+def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: str = "emacs_dependencies", emacs_version: str = "30", show_descriptions: bool = False) -> None:
     """
     Generate a dependency graph for Emacs packages.
 
@@ -111,6 +112,7 @@ def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: st
         dependencies: Dictionary of package dependencies
         output_file: Output filename (without extension)
         emacs_version: Emacs version to determine built-in packages
+        show_descriptions: Whether to show package descriptions in the graph
     """
     dot = Digraph(comment='Emacs Package Dependencies')
     dot.attr(rankdir='LR')  # Left to right layout
@@ -124,6 +126,12 @@ def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: st
     # Add all nodes with different colors for built-in packages
     for package in dependencies.keys():
         label = package
+        if show_descriptions and package in PACKAGE_DESCRIPTIONS:
+            label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+                <TR><TD ALIGN="left">{package}</TD></TR>
+                <TR><TD ALIGN="left"><FONT POINT-SIZE="9">{PACKAGE_DESCRIPTIONS[package]}</FONT></TD></TR>
+            </TABLE>>'''
+
         if package in builtin_packages:
             # Use a different color for built-in packages
             dot.node(package, label, fillcolor='lightblue')
@@ -192,6 +200,11 @@ def main():
         choices=list(EMACS_BUILTIN_PACKAGES.keys()),
         help='Emacs version to determine built-in packages'
     )
+    graph_parser.add_argument(
+        '--show-descriptions',
+        action='store_true',
+        help='Show package descriptions in the graph'
+    )
     
     args = parser.parse_args()
     
@@ -213,7 +226,7 @@ def main():
             else:
                 print("  No dependencies found or error in processing.")
     elif args.command == 'graph':
-        generate_dependency_graph(dependencies, args.output_file, args.emacs_version)
+        generate_dependency_graph(dependencies, args.output_file, args.emacs_version, args.show_descriptions)
 
 
 if __name__ == '__main__':
