@@ -2,6 +2,9 @@ import os
 import re
 import argparse
 
+from graphviz import Digraph
+
+
 def find_emacs_package_dependencies(repo_path: str, only_main_file: bool = False) -> dict[str, set[str]]:
     """
     Reads an Emacs package repository path, iterates through each package's .el files,
@@ -99,46 +102,103 @@ def find_emacs_package_dependencies(repo_path: str, only_main_file: bool = False
 
     return all_dependencies
 
+def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: str = "emacs_dependencies") -> None:
+    """
+    Generate a dependency graph for Emacs packages.
+
+    Args:
+        dependencies: Dictionary of package dependencies
+        output_file: Output filename (without extension)
+    """
+    dot = Digraph(comment='Emacs Package Dependencies')
+    dot.attr(rankdir='LR')  # Left to right layout
+
+    # Set default node attributes
+    dot.attr('node', shape='box', style='rounded,filled', fontname='Arial')
+
+    # Add all nodes
+    for package in dependencies.keys():
+        label = package
+        dot.node(package, label)
+
+    # Add all edges (dependencies)
+    for package, deps in dependencies.items():
+        for dep in deps:
+            if dep in dependencies:  # Only add packages that exist in the dependency dict
+                dot.edge(package, dep)
+
+    # Save the image
+    dot.render(output_file, format='png', cleanup=True)
+    print(f"\n📊 Dependency graph saved as: {output_file}.png")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Analyze Emacs package dependencies from a repository directory.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
-    parser.add_argument(
-        '--repo-path',
-        type=str,
-        help='Path to the Emacs package repository directory'
-    )
-    
+    # Common arguments for all subcommands
     parser.add_argument(
         '--only-main-file',
         action='store_true',
         default=True,
         help='Only search for dependencies in the main .el file of each package'
     )
+
+    # Create subparsers for different commands
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
     
-    parser.add_argument(
-        '--output-format',
+    # Text output command
+    text_parser = subparsers.add_parser('text', help='Output dependencies in text format')
+    text_parser.add_argument(
+        'repo_path',
+        type=str,
+        help='Path to the Emacs package repository directory'
+    )
+    text_parser.add_argument(
+        '--format',
         choices=['text', 'json'],
         default='text',
         help='Output format for the dependencies'
     )
     
+    # Graph output command
+    graph_parser = subparsers.add_parser('graph', help='Generate dependency graph')
+    graph_parser.add_argument(
+        'repo_path',
+        type=str,
+        help='Path to the Emacs package repository directory'
+    )
+    graph_parser.add_argument(
+        '--output-file',
+        type=str,
+        default='emacs_dependencies',
+        help='Output filename for the graph (without extension)'
+    )
+    
     args = parser.parse_args()
     
+    if not args.command:
+        parser.print_help()
+        return
+        
     dependencies = find_emacs_package_dependencies(args.repo_path, args.only_main_file)
     
-    if args.output_format == 'json':
-        import json
-        print(json.dumps({k: list(v) for k, v in dependencies.items()}, indent=2))
-    else:
-        print("\n📊 Detected Package Dependencies:")
-        if dependencies:
-            for pkg, deps in dependencies.items():
-                print(f"  - {pkg}: {deps if deps else '{}'}")
+    if args.command == 'text':
+        if args.format == 'json':
+            import json
+            print(json.dumps({k: list(v) for k, v in dependencies.items()}, indent=2))
         else:
-            print("  No dependencies found or error in processing.")
+            print("\n📊 Detected Package Dependencies:")
+            if dependencies:
+                for pkg, deps in dependencies.items():
+                    print(f"  - {pkg}: {deps if deps else '{}'}")
+            else:
+                print("  No dependencies found or error in processing.")
+    elif args.command == 'graph':
+        generate_dependency_graph(dependencies, args.output_file)
+
 
 if __name__ == '__main__':
     main()
