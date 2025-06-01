@@ -8,5 +8,6 @@ EMACS_BUILTIN_PACKAGES = {
         "cl-lib",
         "org",
         "transient",
+        "use-package",
     }
 }

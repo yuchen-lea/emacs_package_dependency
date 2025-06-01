@@ -4,7 +4,7 @@ import argparse
 
 from graphviz import Digraph
 from emacs_builtin_packages import EMACS_BUILTIN_PACKAGES
-from emacs_package_metadata import PACKAGE_DESCRIPTIONS, CATEGORY_HIERARCHY
+from emacs_package_metadata import PACKAGE_DESCRIPTIONS, CATEGORY_HIERARCHY, GRAPH_TITLE_FORMAT
 
 
 def find_emacs_package_dependencies(repo_path: str, only_main_file: bool = False) -> dict[str, set[str]]:
@@ -104,7 +104,7 @@ def find_emacs_package_dependencies(repo_path: str, only_main_file: bool = False
 
     return all_dependencies
 
-def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: str = "emacs_dependencies", emacs_version: str = "30", show_descriptions: bool = False) -> None:
+def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: str = "emacs_dependencies", emacs_version: str = "30", show_descriptions: bool = False, repo_path: str = None) -> None:
     """
     Generate a dependency graph for Emacs packages.
 
@@ -113,9 +113,13 @@ def generate_dependency_graph(dependencies: dict[str, set[str]], output_file: st
         output_file: Output filename (without extension)
         emacs_version: Emacs version to determine built-in packages
         show_descriptions: Whether to show package descriptions in the graph
+        repo_path: Path to the repository, used in the graph title
     """
     dot = Digraph(comment='Emacs Package Dependencies')
     dot.attr(rankdir='LR')  # Left to right layout
+    
+    title = GRAPH_TITLE_FORMAT.format(repo=repo_path)
+    dot.attr(label=title, fontsize='20', fontname='Arial')
 
     # Set default node attributes
     dot.attr('node', shape='box', style='rounded,filled', fontname='Arial')
@@ -276,7 +280,7 @@ def main():
             else:
                 print("  No dependencies found or error in processing.")
     elif args.command == 'graph':
-        generate_dependency_graph(dependencies, args.output_file, args.emacs_version, args.show_descriptions)
+        generate_dependency_graph(dependencies, args.output_file, args.emacs_version, args.show_descriptions, args.repo_path)
 
 
 if __name__ == '__main__':

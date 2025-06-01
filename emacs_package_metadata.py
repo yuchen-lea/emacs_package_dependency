@@ -2,6 +2,8 @@
 Store metadata information for Emacs packages, including descriptions, versions, authors, etc.
 """
 
+from datetime import datetime
+
 PACKAGE_DESCRIPTIONS = {
     "vundo": "可视化撤回",
 }
@@ -28,3 +30,6 @@ CATEGORY_HIERARCHY = {
         "packages": ["vundo", "expand-region"]},
     "straight 包安装工具": ["emacsmirror-mirror", "gnu-elpa-mirror", "melpa", "nongnu-elpa", "straight"],
 }
+
+# Graph title format, supports {repo} variable
+GRAPH_TITLE_FORMAT = f"Yuchen - Emacs Package Dependencies\n({{repo}})\n{datetime.now().strftime('%Y-%m-%d')}"
